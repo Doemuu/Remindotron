@@ -1,0 +1,2 @@
+def printGay():
+    print("GAY")
