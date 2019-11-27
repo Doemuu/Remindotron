@@ -1,3 +1,1 @@
-import functions
-
-functions.printGay()
+import telegram
