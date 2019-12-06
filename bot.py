@@ -23,14 +23,11 @@ config = configparser.ConfigParser()
 config.read("telegram.ini")
 TOKEN = config["Remindotron"]["TOKEN"]
 
-bot = telegram.Bot(token=TOKEN)
 updater = Updater(token=TOKEN, use_context=True)
 dispatcher = updater.dispatcher
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
-
-
 
 def send_typing_action(func):
     """Sends typing action while processing func command."""
@@ -42,8 +39,17 @@ def send_typing_action(func):
 
     return command_func
 
-# /start command
 def start(update, context):
+    """
+    /start command that messages the user after initiating a chat.
+
+    The default /start command that is ran by the bot when being messaged the first time.
+
+    Args:
+        update (Update): The Telegram Update containing information about the message sent.
+        context (Context): The Telegram Context under which the message was sent.
+    """
+
     context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a bot, please talk to me!")
 
 start_handler = CommandHandler('start', start)
@@ -56,19 +62,15 @@ mydb = mysql.connector.connect(
     database="remindotron"
 )
 
-# request Tasks
 @send_typing_action
 def request(update, context):
     mycursor = mydb.cursor()
     mycursor.execute("SELECT Beschreibung, Datum, Wer FROM task")
 
     myresult = mycursor.fetchall()
-    tasks = list()
+    tasks = ["\n {} \n Datum: {} \n Wer: {}".format(x[0], x[1], x[2]) for x in myresult]
+    task = "I'm a bot, these are your tasks! \n{}".format("\n".join(tasks))
 
-    for x in myresult:
-        print(x)
-        tasks.append(x)
-    task = "I'm a bot, these are your tasks! \n{}".format("\n".join(["\n {} \n Datum: {} \n Wer: {}".format(x[0], x[1], x[2]) for x in tasks]))
     context.bot.send_message(chat_id=update.effective_chat.id, text=task)
 
 request_handler = CommandHandler('request', request)
@@ -80,7 +82,7 @@ def clear(update, context):
     mycursor = mydb.cursor()
     r = mycursor.execute("DELETE FROM `task` WHERE Datum < CURRENT_DATE")
     mydb.commit()
-    result = mycursor.rowcount, "record(s) deleted"
+    result = "{} record(s) deleted".format(mycursor.rowcount)
     context.bot.send_message(chat_id=update.effective_chat.id, text=result)
 
 clarity_handler = CommandHandler('clear', clear)
@@ -93,12 +95,8 @@ def today(update, context):
     mycursor.execute("SELECT Beschreibung, Wer FROM `task` WHERE Datum = CURRENT_DATE")
 
     myresult = mycursor.fetchall()
-    tasks = list()
-
-    for x in myresult:
-        print(x)
-        tasks.append(x)
-    result = "Du musst heute: \n{}".format("\n".join(["\n Task: {} \n Wer: {}".format(x[0], x[1]) for x in tasks]))
+    tasks = ["\n Task: {} \n Wer: {}".format(x[0], x[1]) for x in myresult]
+    result = "Du musst heute: \n{}".format("\n".join(tasks))
 
     context.bot.send_message(chat_id=update.effective_chat.id, text=result)
 
@@ -112,9 +110,8 @@ def week(update, context):
     mycursor.execute("SELECT Beschreibung, Datum, Wer FROM `task` WHERE WEEK(Datum) = WEEK(CURRENT_DATE)")
 
     myresult = mycursor.fetchall()
-    tasks = [(x[0], x[1].strftime('%d/%m/%Y'), x[2]) for x in myresult]
-    for x in tasks: print(x)
-    result = "Du musst in dieser Woche: \n{}".format("\n".join(["\n Task: {} \n Datum: {} \n Wer: {}".format(x[0], x[1], x[2]) for x in tasks]))
+    tasks = ["\n Task: {} \n Datum: {} \n Wer: {}".format(x[0], x[1].strftime('%d/%m/%Y'), x[2]) for x in myresult]
+    result = "Du musst in dieser Woche: \n{}".format("\n".join(tasks))
 
     context.bot.send_message(chat_id=update.effective_chat.id, text=result)
 
@@ -137,7 +134,6 @@ def task_name(update, context):
 
 def task_date(update, context):
     task = update.message.text
-    print(task)
     try:
         day,month,year = task.split("/")
         datetime(int(year),int(month), int(day))
@@ -157,14 +153,14 @@ def task_person(update, context):
     task_name = context.user_data["task_name"]
     task_date = context.user_data["task_date"]
     task_person = context.user_data["task_person"]
+    
     # add to database
     mycursor = mydb.cursor()
     sql_insertion = """INSERT INTO task (Task_ID, Beschreibung, Datum, Wer) VALUES (NULL, %s, %s, %s);"""
     sql_prepared = (task_name, task_date, task_person)
     mycursor.execute(sql_insertion, sql_prepared)
     mydb.commit()
-    print(task_name, task_date, task_person)
-    # save task with mysql
+
     context.user_data.clear()
     return ConversationHandler.END
 
