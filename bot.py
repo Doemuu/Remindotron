@@ -141,7 +141,7 @@ def task_date(update, context):
     day,month,year = task.split("/")
     try:
         datetime(int(year),int(month), int(day))
-        task = year+"-"+month+"-"+day
+        task = "{}-{}-{}".format(year,month,day)
     except ValueError:
         task = "Falsche Eingabe"
         context.bot.send_message(chat_id=update.effective_chat.id, text=task)
