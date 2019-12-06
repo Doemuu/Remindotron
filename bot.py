@@ -7,7 +7,7 @@ import mysql.connector
 
 from functools import wraps
 from datetime import datetime
-from telegram import InlineQueryResultArticle, InputTextMessageContent
+from telegram import InputTextMessageContent
 from telegram import ChatAction
 from telegram.ext import Updater
 from telegram.ext import CommandHandler
@@ -138,8 +138,8 @@ def task_name(update, context):
 def task_date(update, context):
     task = update.message.text
     print(task)
-    day,month,year = task.split("/")
     try:
+        day,month,year = task.split("/")
         datetime(int(year),int(month), int(day))
         task = "{}-{}-{}".format(year,month,day)
     except ValueError:
